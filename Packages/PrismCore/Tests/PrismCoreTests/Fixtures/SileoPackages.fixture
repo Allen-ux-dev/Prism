@@ -1,0 +1,23 @@
+Package: dev.prism.demo
+Name: Prism Demo
+Version: 1.2.0-1
+Architecture: iphoneos-arm64
+Author: Prism Team
+Depends: libexample (>= 1.0), mobilesubstrate
+Conflicts: dev.old.demo (<< 1.0)
+Filename: debs/dev.prism.demo_1.2.0-1_iphoneos-arm64.deb
+Size: 12345
+SHA256: deadbeef
+Icon: https://repo.example/icon.png
+SileoDepiction: https://repo.example/depiction/demo.json
+Description: Demonstration package
+ with a continued description line.
+
+Package: libexample
+Name: Example Library
+Version: 1.4
+Architecture: iphoneos-arm64
+Filename: debs/libexample_1.4_iphoneos-arm64.deb
+Size: 4567
+SHA256: cafe1234
+Description: A dependency package.
