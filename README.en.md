@@ -11,6 +11,46 @@ Prism uses a provider-driven architecture. The core owns package models, reposit
 
 > Prism organizes capabilities exposed by an already-authorized runtime. It does not itself acquire jailbreak or system privileges, and its public service boundary does not expose arbitrary shell, kernel primitives, or unrestricted process-control interfaces.
 
+## Why Prism
+
+### No mandatory basebin dependency in Modern mode
+
+When a Modern Runtime provides native services, Prism Core does not require `basebin`, APT, dpkg, `prismd`, `/var/jb`, or a fixed bootstrap layout as mandatory dependencies.
+
+Traditional components remain available through compatibility providers when a source, package, or environment actually needs the Debian/APT ecosystem.
+
+### Provider-driven instead of product-driven
+
+Runtime, repository, package, and application services are selected through capabilities and providers instead of hard-coded jailbreak product names or filesystem assumptions.
+
+### Modern-first, legacy-compatible
+
+Native Runtime services can remain the primary path while Debian/APT repositories and common Sileo/Zebra metadata conventions remain supported through compatibility providers.
+
+### Transaction-safe writes
+
+Package and application writes use:
+
+```text
+Plan
+→ Transaction
+→ Journal
+→ Execute
+→ Inspect Actual State
+→ Reconcile
+→ Commit / Recovery / Needs Review
+```
+
+This gives Prism a consistent recovery boundary and prevents an active write transaction from silently migrating to another provider.
+
+### Runtime-independent package core
+
+The package model, resolver, transaction system, recovery model, and presentation layer do not depend on one specific Runtime implementation.
+
+### Built-in diagnostics and reconnect handling
+
+Runtime/helper health, provider state, transaction history, recovery state, global logs, and reconnect flows are part of the product rather than separate ad-hoc tools.
+
 ## Core Principles
 
 - **Modern-first** — RELAXIN-X Modern Runtime is the primary integration path.
@@ -68,52 +108,11 @@ Prism implements:
 
 In compatible legacy environments, package execution can use the existing APT/dpkg toolchain through a compatibility provider while keeping those implementation details out of the UI.
 
-### Transaction, Journal, and Recovery
-
-Every write operation follows the same safety pipeline:
-
-```text
-Plan
-  ↓
-Transaction
-  ↓
-Journal
-  ↓
-Provider / Runtime execution
-  ↓
-Actual-state inspection
-  ↓
-Reconcile
-  ↓
-Commit / Recovery / Needs Review
-```
-
-Recovery capabilities include:
-
-- reconcile
-- rollback when supported
-- safe abort when supported
-- interrupted transaction recovery
-- needs-review state
-- actual-state inspection before recovery
-- prevention of silent provider switching during an active transaction
-
 ### Runtime Service Bridge
 
-Prism supports a typed, versioned Runtime Service Bridge for already-authorized runtimes.
+Prism supports a typed, versioned Runtime Service Bridge for already-authorized runtimes. The bridge can expose runtime descriptors, capabilities, package services, application services, artifact staging, background runtime services, health, reconnect state, and typed compatibility services.
 
-The bridge can expose:
-
-- runtime descriptor
-- capability registry
-- package service
-- application service
-- artifact staging service
-- background runtime service
-- health and reconnect state
-- optional typed compatibility services
-
-`prismd` remains available as a compatibility service for environments that use a traditional daemon/package-service model. Modern environments can provide runtime-native services without making `prismd`, APT, dpkg, or a fixed bootstrap layout mandatory.
+`prismd` remains available as a compatibility service for environments that use a traditional daemon/package-service model. Modern environments can provide runtime-native services without making `basebin`, `prismd`, APT, dpkg, or a fixed bootstrap layout mandatory.
 
 ### Runtime Connectivity
 
@@ -130,38 +129,7 @@ Prism includes managed runtime/helper connectivity:
 
 ### Application Management
 
-Prism includes runtime-backed application models and typed application transactions for:
-
-- application discovery
-- registration / refresh
-- repair
-- removal
-- runtime-managed installation requests
-- artifact staging capability checks
-- application-state verification
-- transaction and recovery integration
-
-### Commerce Contracts
-
-- repositories own account/payment flows
-- Prism consumes normalized entitlement results
-- Prism does not store raw payment-card credentials
-- owned packages still install through the standard transaction pipeline
-
-### Diagnostics and Logging
-
-- provider status
-- runtime bridge status
-- capability status
-- transaction history
-- recovery state
-- global logs
-- redaction-oriented diagnostics for implementation-sensitive paths
-
-### Localization
-
-- English
-- Simplified Chinese
+Prism includes runtime-backed application models and typed application transactions for application discovery, registration / refresh, repair, removal, runtime-managed installation requests, artifact staging capability checks, application-state verification, and transaction/recovery integration.
 
 ## Architecture
 
@@ -198,27 +166,15 @@ Authorized Runtime Environment
 
 ### Modern
 
-A runtime-native provider supplies repository, package, and application services directly. Traditional APT/bootstrap components are not mandatory.
+Runtime-native providers supply repository, package, and application services directly. `basebin`, APT, dpkg, `prismd`, `/var/jb`, and a traditional bootstrap are not mandatory Prism Core dependencies.
 
 ### Hybrid
 
-A modern runtime is primary, while legacy Debian/APT compatibility is activated only when required.
+A Modern Runtime remains primary while Debian/APT compatibility is activated only when required.
 
 ### Legacy
 
-Traditional bootstrap environments can use `prismd` plus APT/dpkg compatibility providers.
-
-## Project Structure
-
-```text
-App/                         Native iOS SwiftUI application
-Packages/PrismCore/          Core Swift package
-Scripts/                     Verification and architecture gates
-docs/FEATURES.md             Detailed feature reference
-docs/RUNTIME-INTEGRATION.md  Runtime/provider integration overview
-Prism.xcodeproj/             Xcode project
-Build.command                macOS build entry
-```
+Traditional bootstrap environments can use `prismd`, APT/dpkg, and related components through compatibility providers.
 
 ## Building
 
@@ -230,8 +186,11 @@ Prism is a native Swift/SwiftUI project with a Swift Package based core.
 
 ## Documentation
 
-- [`docs/FEATURES.md`](docs/FEATURES.md) — complete feature reference
-- [`docs/RUNTIME-INTEGRATION.md`](docs/RUNTIME-INTEGRATION.md) — runtime/provider integration overview
+- [`docs/USAGE.en.md`](docs/USAGE.en.md) — usage guide
+- [`docs/FEATURES.en.md`](docs/FEATURES.en.md) — complete feature reference
+- [`docs/RUNTIME-INTEGRATION.en.md`](docs/RUNTIME-INTEGRATION.en.md) — Runtime/provider integration overview
+
+Every public guide also includes a link to its Simplified Chinese counterpart.
 
 ## License
 
