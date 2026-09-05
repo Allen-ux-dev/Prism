@@ -17,14 +17,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reassemble and expand verified source archive
+      - name: Verify and expand Build 52 source archive
         shell: bash
         run: |
           set -euo pipefail
-          cat .upload/chunk-* > /tmp/prism-source.b64
-          base64 --decode /tmp/prism-source.b64 > /tmp/prism-source.zip
+          echo "496b87af728e6a7eb65051a23c2d86558fac301f2487d43812ee9b9628c81d10  .upload/prism-source.tar.xz" | sha256sum -c -
           tmp="$(mktemp -d)"
-          unzip -q /tmp/prism-source.zip -d "$tmp"
+          tar -xJf .upload/prism-source.tar.xz -C "$tmp"
           rsync -a "$tmp/" ./ \
             --exclude '.git/' \
             --exclude '.github/' \
@@ -33,13 +32,45 @@ jobs:
             --exclude 'LICENSE' \
             --exclude 'NOTICE' \
             --exclude '.gitignore'
-          rm -rf .upload
-          rm -f .github/workflows/import-prism-source.yml
+
+      - name: Generate referenced AppIcon sizes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq imagemagick
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import subprocess
+
+          icon_dir = pathlib.Path("App/Assets.xcassets/AppIcon.appiconset")
+          contents = json.loads((icon_dir / "Contents.json").read_text())
+          source = icon_dir / "Prism-AppIcon-1024.png"
+          if not source.exists():
+              raise SystemExit("missing Prism-AppIcon-1024.png")
+
+          for image in contents.get("images", []):
+              filename = image.get("filename")
+              size = image.get("size")
+              scale = image.get("scale")
+              if not filename or filename == source.name or not size or not scale:
+                  continue
+              points = float(size.split("x", 1)[0])
+              multiplier = int(scale.rstrip("x"))
+              pixels = round(points * multiplier)
+              destination = icon_dir / filename
+              subprocess.check_call([
+                  "convert", str(source), "-resize", f"{pixels}x{pixels}", str(destination)
+              ])
+          PY
 
       - name: Commit imported source
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf .upload
+          rm -f .github/workflows/import-prism-source.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
