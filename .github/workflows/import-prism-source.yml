@@ -3,7 +3,7 @@ name: Import Prism Build 52 source
 on:
   push:
     paths:
-      - '.upload/prism-source.zip'
+      - '.upload/READY'
 
 permissions:
   contents: write
@@ -17,12 +17,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Expand verified source archive
+      - name: Reassemble and expand verified source archive
         shell: bash
         run: |
           set -euo pipefail
+          cat .upload/chunk-* > /tmp/prism-source.b64
+          base64 --decode /tmp/prism-source.b64 > /tmp/prism-source.zip
           tmp="$(mktemp -d)"
-          unzip -q .upload/prism-source.zip -d "$tmp"
+          unzip -q /tmp/prism-source.zip -d "$tmp"
           rsync -a "$tmp/" ./ \
             --exclude '.git/' \
             --exclude '.github/' \
